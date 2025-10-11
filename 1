@@ -1,4 +1,3 @@
-import math
 import os
 import pickle
 import string
@@ -52,7 +51,6 @@ class InvertedIndex:
             self.term_frequencies = pickle.load(f)
 
     def get_documents(self, term: str) -> list[int]:
-        term = tokenize_text(term)[0]
         doc_ids = self.index.get(term, set())
         return sorted(list(doc_ids))
 
@@ -60,21 +58,17 @@ class InvertedIndex:
         token = tokenize_text(term)
         if len(token) != 1:
             raise ValueError("Incorrect number of terms for term frequency calculation")
-        return self.term_frequencies[doc_id][token[0]]
+        print(self.term_frequencies[doc_id])
+        return self.term_frequencies[doc_id][term[0]]
 
     def __add_document(self, doc_id: int, text: str) -> None:
         tokens = tokenize_text(text)
-        for token in set(tokens):
-            self.index[token].add(doc_id)
-        self.term_frequencies[doc_id].update(tokens)
-
-
-def idf_command(term: str) -> float:
-    idx = InvertedIndex()
-    idx.load()
-    doc_count = len(idx.docmap.keys())
-    term_doc_count = len(idx.get_documents(term))
-    return math.log((doc_count + 1) / (term_doc_count + 1))
+        seen: set[str] = set()
+        for token in tokens:
+            self.term_frequencies[doc_id][token] += 1
+            if token not in seen:
+                self.index[token].add(doc_id)
+                seen.add(token)
 
 
 def tf_command(doc_id: int, term: str) -> int:
@@ -93,7 +87,6 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[Movie]
     idx = InvertedIndex()
     idx.load()
     query_tokens = tokenize_text(query)
-    print(f"Tokenized: {query_tokens}")
     seen: set[int] = set()
     results: list[Movie] = []
     for token in query_tokens:
