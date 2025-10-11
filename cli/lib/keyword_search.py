@@ -12,15 +12,16 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     for movie in movies:
         preprocessed_query = preprocess_text(query)
         preprocessed_title = preprocess_text(movie["title"])
-        if preprocessed_query in preprocessed_title:
+        if set(preprocessed_query) & set(preprocessed_title):
             results.append(movie)
             if len(results) >= limit:
                 break
     return results
 
 
-def preprocess_text(text: str) -> str:
+def preprocess_text(text: str) -> list[str]:
     text = text.lower()
     remove_punctuation = str.maketrans("", "", string.punctuation)
     text = text.translate(remove_punctuation)
-    return text
+    text_list = text.split()
+    return text_list
