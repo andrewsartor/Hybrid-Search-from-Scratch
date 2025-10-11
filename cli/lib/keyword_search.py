@@ -17,7 +17,7 @@ from .search_utils import (
 class InvertedIndex:
     def __init__(self) -> None:
         self.index = defaultdict(set)
-        self.docmap: dict[int, dic] = {}
+        self.docmap: dict[int, Movie] = {}
         self.index_path = os.path.join(CACHE_DIR, "index.pkl")
         self.docmap_path = os.path.join(CACHE_DIR, "docmap.pkl")
 
@@ -36,6 +36,12 @@ class InvertedIndex:
         with open(self.docmap_path, "wb") as f:
             pickle.dump(self.docmap, f)
 
+    def load(self) -> None:
+        with open(self.index_path, "rb") as f:
+            self.index = pickle.load(f)
+        with open(self.docmap_path, "rb") as f:
+            self.docmap = pickle.load(f)
+
     def get_documents(self, term: str) -> list[int]:
         doc_ids = self.index.get(term, set())
         return sorted(list(doc_ids))
@@ -50,22 +56,28 @@ def build_command() -> None:
     idx = InvertedIndex()
     idx.build()
     idx.save()
-    docs = idx.get_documents("merida")
-    print(f"First document for token 'merida' = {docs[0]}")
 
 
 def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[Movie]:
-    movies = load_movies()
+    idx = InvertedIndex()
+    idx.load()
+    query_tokens = tokenize_text(query)
+    seen: set[int] = set()
     results: list[Movie] = []
-    for movie in movies:
-        query_tokens = tokenize_text(query)
-        title_tokens = tokenize_text(movie["title"])
-        if has_matching_token(query_tokens, title_tokens):
-            results.append(movie)
-            if len(results) >= limit:
-                return results
+    for token in query_tokens:
+        matched_docs = idx.get_documents(token)
+        for doc_id in matched_docs:
+            if doc_id in seen:
+                continue
+            seen.add(doc_id)
+            doc = idx.docmap[doc_id]
+            if not doc:
+                continue
+            results.append(doc)
+        if len(results) >= limit:
+            break
 
-    return results
+    return results[:limit]
 
 
 def has_matching_token(query_tokens: list[str], title_tokens: list[str]) -> bool:
