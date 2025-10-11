@@ -1,16 +1,8 @@
 import argparse
-import json
 
-
-def keyword_search(keyword: str) -> list[str]:
-    with open("data/movies.json") as f:
-        data = json.load(f)
-        matches = []
-        for movie in data.get("movies"):
-            if keyword in movie.get("title"):
-                matches.append((movie.get("id"), movie.get("title")))
-    results = [f"{movie[1]} {movie[0]}" for movie in sorted(matches)[:5]]
-    return results
+from lib.keyword_search import (
+    search_command,
+)
 
 
 def main() -> None:
@@ -25,9 +17,9 @@ def main() -> None:
     match args.command:
         case "search":
             print("Searching for:", args.query)
-            results = keyword_search(args.query)
-            for i, val in enumerate(results):
-                print(f"{i + 1}. {val}")
+            results = search_command(args.query)
+            for i, val in enumerate(results, 1):
+                print(f"{i}. {val['title']}")
         case _:
             parser.print_help()
 
