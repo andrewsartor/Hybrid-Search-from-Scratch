@@ -59,6 +59,20 @@ class InvertedIndex:
         with open(self.doc_lengths_path, "rb") as f:
             self.doc_lengths = pickle.load(f)
 
+    def bm25_search(self, query: str, limit: int) -> list[tuple[Movie, float]]:
+        tokenized_query = tokenize_text(query)
+        scores: dict[int, float] = defaultdict(float)
+        for token in tokenized_query:
+            for doc_id in self.index[token]:
+                scores[doc_id] += self.bm25(doc_id, token)
+        sorted_doc_ids = sorted(
+            scores, key=lambda doc_id: scores[doc_id], reverse=True
+        )[:limit]
+        return [(self.docmap[doc_id], scores[doc_id]) for doc_id in sorted_doc_ids]
+
+    def bm25(self, doc_id: int, term: str) -> float:
+        return self.get_bm25_tf(doc_id, term) * self.get_bm25_idf(term)
+
     def get_documents(self, term: str) -> list[int]:
         term = tokenize_text(term)[0]
         doc_ids = self.index.get(term, set())
@@ -113,6 +127,14 @@ class InvertedIndex:
         if len(self.docmap) < 1:
             return 0.0
         return sum(self.doc_lengths.values()) / len(self.docmap)
+
+
+def bm25_search_command(
+    query: str, limit: int = DEFAULT_SEARCH_LIMIT
+) -> list[tuple[Movie, float]]:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.bm25_search(query, limit)
 
 
 def bm25_tf_command(
