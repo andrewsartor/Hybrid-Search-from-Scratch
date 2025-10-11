@@ -1,8 +1,6 @@
 import argparse
 
-from lib.keyword_search import (
-    search_command,
-)
+from lib.keyword_search import search_command
 
 
 def main() -> None:

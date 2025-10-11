@@ -1,5 +1,7 @@
 import string
 
+from nltk.stem import PorterStemmer
+
 from .search_utils import (
     DEFAULT_SEARCH_LIMIT,
     load_movies,
@@ -44,4 +46,8 @@ def tokenize_text(text: str) -> list[str]:
     for token in tokens:
         if token and token not in stopwords:
             valid_tokens.append(token)
-    return valid_tokens
+    stemmer = PorterStemmer()
+    stemmed_words = []
+    for word in valid_tokens:
+        stemmed_words.append(stemmer.stem(word))
+    return stemmed_words
