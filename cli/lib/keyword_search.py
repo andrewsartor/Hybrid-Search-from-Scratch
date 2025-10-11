@@ -3,6 +3,7 @@ import string
 from .search_utils import (
     DEFAULT_SEARCH_LIMIT,
     load_movies,
+    load_stopwords,
 )
 
 
@@ -16,11 +17,16 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
             results.append(movie)
             if len(results) >= limit:
                 break
+
     return results
 
 
 def has_matching_token(query_tokens: list[str], title_tokens: list[str]) -> bool:
-    return len(set(query_tokens) & set(title_tokens)) > 0
+    for query_token in query_tokens:
+        for title_token in title_tokens:
+            if query_token in title_token:
+                return True
+    return False
 
 
 def preprocess_text(text: str) -> str:
@@ -33,8 +39,9 @@ def preprocess_text(text: str) -> str:
 def tokenize_text(text: str) -> list[str]:
     text = preprocess_text(text)
     tokens = text.split()
+    stopwords = set(load_stopwords())
     valid_tokens = []
     for token in tokens:
-        if token:
+        if token and token not in stopwords:
             valid_tokens.append(token)
     return valid_tokens
