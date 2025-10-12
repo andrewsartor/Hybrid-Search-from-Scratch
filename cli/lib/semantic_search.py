@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Any, TypedDict
 
 import numpy as np
@@ -131,3 +132,13 @@ def chunk(text: str, chunk_size: int = 200, overlap: int = 0) -> list[str]:
     words = text.split()
     step = chunk_size - overlap
     return [" ".join(words[i : i + chunk_size]) for i in range(0, len(words), step)]
+
+
+def semantic_chunk(text: str, max_chunk_size: int = 4, overlap: int = 1) -> list[str]:
+    SENTENCE_BOUNDARY = r"(?<=[.!?])\s+"
+    sentences = re.split(SENTENCE_BOUNDARY, text)
+    step = max_chunk_size - overlap
+    return [
+        " ".join(sentences[i : i + max_chunk_size])
+        for i in range(0, len(sentences), step)
+    ]
