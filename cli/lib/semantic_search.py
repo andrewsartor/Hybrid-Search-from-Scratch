@@ -50,7 +50,7 @@ class SemanticSearch:
             self.embeddings = self.build_embeddings(documents)
         return self.embeddings
 
-    def search(self, query, limit) -> list[SearchResult]:
+    def search(self, query: str, limit: int = 5) -> list[SearchResult]:
         if self.embeddings is None:
             raise ValueError(
                 "No embeddings loaded. Call `load_or_create_embeddings` first."
@@ -125,3 +125,9 @@ def search(query: str, limit: int = 5) -> None:
         print(
             f"{i}. {result['title']} (score: {result['score']:.4f})\n   {result['description']}\n"
         )
+
+
+def chunk(text: str, chunk_size: int = 200, overlap: int = 0) -> list[str]:
+    words = text.split()
+    step = chunk_size - overlap
+    return [" ".join(words[i : i + chunk_size]) for i in range(0, len(words), step)]
