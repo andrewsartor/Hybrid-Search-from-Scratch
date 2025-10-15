@@ -6,6 +6,7 @@ from lib.semantic_search import (
     embed_query_text,
     embed_text,
     search,
+    search_chunks,
     semantic_chunk,
     verify_embeddings,
     verify_model,
@@ -61,10 +62,25 @@ def main() -> None:
         default=1,
         help="Amount of words to overlap in each chunk",
     )
+    semantic_chunk_search_parser = subparsers.add_parser(
+        "search_chunked", help="Search chunks for query"
+    )
+    _ = semantic_chunk_search_parser.add_argument(
+        "query", type=str, help="Text to search for"
+    )
+    _ = semantic_chunk_search_parser.add_argument(
+        "--limit",
+        type=int,
+        nargs="?",
+        default=10,
+        help="Max results to show",
+    )
 
     args = parser.parse_args()
 
     match args.command:
+        case "search_chunked":
+            search_chunks(args.query, args.limit)
         case "embed_chunks":
             embed_chunks()
         case "semantic_chunk":
