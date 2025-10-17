@@ -1,6 +1,14 @@
-import argparse
+import sys
+from pathlib import Path
+from typing import Any
 
-from lib.semantic_search import (
+import numpy as np
+
+# Add parent directory to Python path for direct script execution
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from cli.lib.cli_base import BaseCLI
+from cli.lib.semantic_search import (
     chunk,
     embed_chunks,
     embed_query_text,
@@ -11,103 +19,112 @@ from lib.semantic_search import (
     verify_embeddings,
     verify_model,
 )
+from numpy.typing import NDArray
+
+
+class SemanticSearchCLI(BaseCLI):
+    def __init__(self):
+        super().__init__("Semantic Search CLI")
+        self._setup_commands()
+
+    def _setup_commands(self) -> None:
+        self.command("verify", "Verify model loads and display details")(self._verify)
+
+        self.command("verify-embeddings", "Verify document embeddings")(
+            self._verify_embeddings
+        )
+
+        self.command("embed-text", "Generate embedding for input text")(
+            self._embed_text
+        ).add_argument("text", type=str, help="Text to embed")
+
+        self.command("embed-query", "Generate embedding for query text")(
+            self._embed_query
+        ).add_argument("query", type=str, help="Query to embed")
+
+        self.command("embed-chunks", "Generate chunked embeddings for all documents")(
+            self._embed_chunks
+        )
+
+        self.command("search", "Search documents using semantic similarity")(
+            self._search
+        ).add_argument("query", type=str, help="Search query").add_argument(
+            "--limit", type=int, default=5, help="Maximum results to return"
+        )
+
+        self.command("search-chunks", "Search document chunks using semantic similarity")(
+            self._search_chunks
+        ).add_argument("query", type=str, help="Search query").add_argument(
+            "--limit", type=int, default=10, help="Maximum results to return"
+        )
+
+        self.command("chunk", "Split text into word-based chunks")(
+            self._chunk
+        ).add_argument("text", type=str, help="Text to chunk").add_argument(
+            "--chunk-size", type=int, default=200, help="Words per chunk"
+        ).add_argument(
+            "--overlap", type=int, default=0, help="Word overlap between chunks"
+        )
+
+        self.command("semantic-chunk", "Split text into sentence-based chunks")(
+            self._semantic_chunk
+        ).add_argument("text", type=str, help="Text to chunk").add_argument(
+            "--max-chunk-size", type=int, default=4, help="Sentences per chunk"
+        ).add_argument(
+            "--overlap", type=int, default=1, help="Sentence overlap between chunks"
+        )
+
+    def _verify(self) -> str:
+        verify_model()
+        return ""
+
+    def _verify_embeddings(self) -> str:
+        verify_embeddings()
+        return ""
+
+    def _embed_text(self, text: str) -> NDArray[np.float32]:
+        return embed_text(text)
+
+    def _embed_query(self, query: str) -> str:
+        embed_query_text(query)
+        return ""
+
+    def _embed_chunks(self) -> str:
+        embed_chunks()
+        return ""
+
+    def _search(self, query: str, limit: int = 5) -> str:
+        search(query, limit)
+        return ""
+
+    def _search_chunks(self, query: str, limit: int = 10) -> str:
+        search_chunks(query, limit)
+        return ""
+
+    def _chunk(self, text: str, chunk_size: int = 200, overlap: int = 0) -> list[str]:
+        return chunk(text, chunk_size, overlap)
+
+    def _semantic_chunk(self, text: str, max_chunk_size: int = 4, overlap: int = 1) -> list[str]:
+        return semantic_chunk(text, max_chunk_size, overlap)
+
+    def handle_result(self, command: str, result: Any) -> None:
+        if command in ["verify", "verify-embeddings", "embed-query", "embed-chunks", "search", "search-chunks"]:
+            pass
+        elif command == "embed-text":
+            embedding = result
+            print(f"First 3 dimensions: {embedding[:3]}")
+            print(f"Total dimensions: {embedding.shape[0]}")
+        elif command in ["chunk", "semantic-chunk"]:
+            chunks = result
+            chunk_type = "semantic" if command == "semantic-chunk" else "word-based"
+            print(f"Created {len(chunks)} {chunk_type} chunks:")
+            for i, chunk_text in enumerate(chunks, 1):
+                print(f"{i}. {chunk_text}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Semantic Search CLI")
-    subparsers = parser.add_subparsers(dest="command", help="Available commands")
-    _ = subparsers.add_parser("verify", help="Verify model loads and display details.")
-    _ = subparsers.add_parser("embed_chunks", help="Generate chunked embeddings")
-    embed_text_parser = subparsers.add_parser(
-        "embed_text", help="Generate embedding for input text"
-    )
-    _ = embed_text_parser.add_argument("text", type=str, help="Text to embed")
-    _ = subparsers.add_parser("verify_embeddings", help="Verify embeddings")
-    embedquery_parser = subparsers.add_parser("embedquery", help="Embed query")
-    _ = embedquery_parser.add_argument("query", type=str, help="The query to embed")
-    search_parser = subparsers.add_parser("search", help="Search documents for string")
-    _ = search_parser.add_argument("query", type=str, help="String to search for")
-    _ = search_parser.add_argument(
-        "--limit", type=int, nargs="?", default=5, help="String to search for"
-    )
-    chunk_parser = subparsers.add_parser(
-        "chunk", help="Chunk text into chunks of a given length."
-    )
-    _ = chunk_parser.add_argument("text", type=str, help="Text to chunk")
-    _ = chunk_parser.add_argument(
-        "--chunk-size", type=int, nargs="?", default=200, help="String to search for"
-    )
-    _ = chunk_parser.add_argument(
-        "--overlap",
-        type=int,
-        nargs="?",
-        default=0,
-        help="Amount of words to overlap in each chunk",
-    )
-    semantic_chunk_parser = subparsers.add_parser(
-        "semantic_chunk", help="Chunk text into chunks of a given length."
-    )
-    _ = semantic_chunk_parser.add_argument("text", type=str, help="Text to chunk")
-    _ = semantic_chunk_parser.add_argument(
-        "--max-chunk-size",
-        type=int,
-        nargs="?",
-        default=4,
-        help="String to search for",
-    )
-    _ = semantic_chunk_parser.add_argument(
-        "--overlap",
-        type=int,
-        nargs="?",
-        default=1,
-        help="Amount of words to overlap in each chunk",
-    )
-    semantic_chunk_search_parser = subparsers.add_parser(
-        "search_chunked", help="Search chunks for query"
-    )
-    _ = semantic_chunk_search_parser.add_argument(
-        "query", type=str, help="Text to search for"
-    )
-    _ = semantic_chunk_search_parser.add_argument(
-        "--limit",
-        type=int,
-        nargs="?",
-        default=10,
-        help="Max results to show",
-    )
-
-    args = parser.parse_args()
-
-    match args.command:
-        case "search_chunked":
-            search_chunks(args.query, args.limit)
-        case "embed_chunks":
-            embed_chunks()
-        case "semantic_chunk":
-            chunks = semantic_chunk(args.text, args.max_chunk_size, args.overlap)
-            print(f"Semantically chunking {len(args.text)} characters")
-            for i, c in enumerate(chunks, 1):
-                print(f"{i}. {c}")
-        case "chunk":
-            chunks = chunk(args.text, args.chunk_size, args.overlap)
-            print(f"Chunking {len(args.text)} characters")
-            for i, c in enumerate(chunks, 1):
-                print(f"{i}. {c}")
-        case "search":
-            search(args.query, args.limit)
-        case "embedquery":
-            embed_query_text(args.query)
-        case "verify_embeddings":
-            verify_embeddings()
-        case "embed_text":
-            print(f"Text: {args.text}")
-            embedding = embed_text(args.text)
-            print(f"First 3 dimensions: {embedding[:3]}")
-            print(f"Dimensions: {embedding.shape[0]}")
-        case "verify":
-            verify_model()
-        case _:
-            parser.print_help()
+    cli = SemanticSearchCLI()
+    cli.run()
 
 
 if __name__ == "__main__":

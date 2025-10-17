@@ -4,7 +4,7 @@ import re
 from typing import TypedDict, cast, override
 
 import numpy as np
-from lib.search_utils import CACHE_DIR, Movie, load_movies
+from .search_utils import CACHE_DIR, Movie, load_movies
 from numpy.typing import NDArray
 from sentence_transformers import SentenceTransformer
 
