@@ -1,0 +1,1 @@
+This constitutes my amateur atempt at creating hybrid serach from scratch, and is not intended to be used for any real world application. I only plan on using this repo to document my learnings as I try to create a working vector / keyword search combination and reranker.
