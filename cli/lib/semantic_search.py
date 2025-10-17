@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from typing import TypedDict, cast
+from typing import TypedDict, cast, override
 
 import numpy as np
 from lib.search_utils import CACHE_DIR, Movie, load_movies
@@ -154,6 +154,7 @@ class ChunkedSemanticSearch(SemanticSearch):
         assert self.chunk_embeddings is not None
         return self.chunk_embeddings
 
+    @override
     def search(self, query: str, limit: int = 5) -> list[SearchResult]:
         if self.embeddings is None:
             raise ValueError(
@@ -257,12 +258,49 @@ def chunk(text: str, chunk_size: int = 200, overlap: int = 0) -> list[str]:
 
 def semantic_chunk(text: str, max_chunk_size: int = 4, overlap: int = 1) -> list[str]:
     SENTENCE_BOUNDARY = r"(?<=[.!?])\s+"
+    text = text.strip()
+    if text == "":
+        return []
     sentences = re.split(SENTENCE_BOUNDARY, text)
+    if len(sentences) == 1:
+        return [sentences[0].strip()] if sentences[0].strip() != "" else []
     step = max_chunk_size - overlap
-    return [
-        " ".join(sentences[i : i + max_chunk_size])
-        for i in range(0, len(sentences) - overlap, step)
-    ]
+    chunks: list[str] = []
+    for i in range(0, len(sentences) - overlap, step):
+        chunk = " ".join(s.strip() for s in sentences[i : i + max_chunk_size])
+        if chunk:
+            chunks.append(chunk)
+    return chunks
+
+
+# This is the solution code -- it's buggy and doesn't work for their test cases.
+# Their platform is not worth the money.
+# text = text.strip()
+# if not text:
+#    return []
+
+# sentences = re.split(r"(?<=[.!?])\s+", text)
+
+# if len(sentences) == 1 and not text.endswith((".", "!", "?")):
+#    sentences = [text]
+
+# chunks = []
+# i = 0
+# n_sentences = len(sentences)
+
+# while i < n_sentences - overlap:
+#    print("iter: ", str(i))
+#    chunk_sentences = sentences[i : i + max_chunk_size]
+#    cleaned_sentences = []
+#    for chunk_sentence in chunk_sentences:
+#        cleaned_sentences.append(chunk_sentence.strip())
+#    if not cleaned_sentences:
+#        continue
+#    chunk = " ".join(cleaned_sentences)
+#    chunks.append(chunk)
+#    i += max_chunk_size - overlap
+
+# return chunks
 
 
 def embed_chunks() -> None:
